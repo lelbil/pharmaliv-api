@@ -6,5 +6,6 @@ CREATE TABLE "user" (
     "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL default CURRENT_DATE,
     "user" varchar(55) NOT NULL,
     "password" varchar(55) NOT NULL,
-    "type" userType NOT NULL
+    "type" userType NOT NULL,
+    unique("user")
 );

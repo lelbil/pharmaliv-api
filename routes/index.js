@@ -13,19 +13,29 @@ router.get('/', async ctx => {
 })
 
 router.post('/login', async ctx => {
-    const type = DOCTOR//TODO
+    //TODO: validate that the request body has (strictly) ctx.request.body
+
+    const [{ type }] = await db.select('type').from('user').where(ctx.request.body)
 
     ctx.session.type = type
 
     ctx.status = 200
-    ctx.body = {type}
+    ctx.body = { type }
 })
 
 router.post('/signup', async ctx => {
     //TODO: validate body + type must be one of possible types
-    //TODO: make sure user doesn't exist in DB
+    //TODO: encrypt
 
     const newUser = ctx.request.body
+
+    const [ duplicate ] =  await db.select().from('user').where({ user: newUser.user })
+    if (duplicate) {
+        ctx.status = 400
+        ctx.body = `Username ${newUser.user} already exists!`
+        return
+    }
+
     newUser.id = uuid()
 
     ctx.body = (await db('user').insert(newUser).returning('*'))[0]
