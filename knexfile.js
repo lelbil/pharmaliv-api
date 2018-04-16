@@ -1,5 +1,3 @@
-// Update with your config settings.
-
 module.exports = {
 
     development: {
@@ -41,11 +39,11 @@ module.exports = {
     production: {
         client: 'pg',
         connection: {
-            host : 'localhost',
+            host: 'localhost',
             port: '5433',
-            user : 'username',
-            password : 'password',
-            database : 'db_name',
+            user: 'username',
+            password: 'password',
+            database: 'db_name',
         },
         pool: {
             min: 2,

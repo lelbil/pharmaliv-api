@@ -1,6 +1,10 @@
+'use strict'
+
+const uuid = require('uuid/v4')
 const KoaRouter = require('koa-router')
 const router = new KoaRouter()
 
+const db = require('../db')
 const ERRORS = require('../common/errors')
 const { PATIENT, DELIVERY_MAN, DOCTOR, PHARMACIST } = require('../common/enums')
 
@@ -15,6 +19,16 @@ router.post('/login', async ctx => {
 
     ctx.status = 200
     ctx.body = {type}
+})
+
+router.post('/signup', async ctx => {
+    //TODO: validate body + type must be one of possible types
+    //TODO: make sure user doesn't exist in DB
+
+    const newUser = ctx.request.body
+    newUser.id = uuid()
+
+    ctx.body = (await db('user').insert(newUser).returning('*'))[0]
 })
 
 router.get('/logout', async ctx => {

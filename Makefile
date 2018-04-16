@@ -4,15 +4,19 @@ restart:
 
 start:
 	@docker-compose up -d --build
+	@sleep 1
 	@make migrate
-
-setup:
-	@make start
-	@make populate_db
 
 quit:
 	@docker-compose stop
 	@docker-compose rm -f
+
+debug:
+	@docker-compose up --build
+
+restart-debug:
+	@make quit
+	@make debug
 
 migrate:
 	@node_modules/.bin/knex migrate:latest
