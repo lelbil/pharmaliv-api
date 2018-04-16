@@ -1,6 +1,5 @@
 const KoaRouter = require('koa-router')
 const router = new KoaRouter()
-const bcrypt = require('bcrypt')
 
 const ERRORS = require('../common/errors')
 const { PATIENT, DELIVERY_MAN, DOCTOR, PHARMACIST } = require('../common/enums')
