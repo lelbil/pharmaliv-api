@@ -27,7 +27,11 @@ router.post('/signup', async ctx => {
     //TODO: validate body + type must be one of possible types
     //TODO: encrypt
 
+    console.log('Calling /signup..')
+
     const newUser = ctx.request.body
+
+    console.log('trying to register new user: ', newUser)
 
     const [ duplicate ] =  await db.select().from('user').where({ user: newUser.user })
     if (duplicate) {
@@ -35,7 +39,7 @@ router.post('/signup', async ctx => {
         ctx.body = `Username ${newUser.user} already exists!`
         return
     }
-
+    console.log('DONE')
     newUser.id = uuid()
 
     ctx.body = (await db('user').insert(newUser).returning('*'))[0]
