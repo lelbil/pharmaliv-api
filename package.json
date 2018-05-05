@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js; node_modules/.bin/knex migrate:latest"
+    "start": "node_modules/.bin/knex migrate:latest; node index.js;"
   },
   "author": "",
   "license": "ISC",
