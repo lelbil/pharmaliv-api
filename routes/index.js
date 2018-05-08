@@ -18,14 +18,16 @@ router.post('/login', async ctx => {
     const [ dbUser ] = await db.select('type').from('user').where(ctx.request.body)
     if (! dbUser ) {
         ctx.session.type = null
+        ctx.session.userId = null
         ctx.status = 401
         ctx.body = null
         return
     }
 
-    const { type } = dbUser
+    const { type, id } = dbUser
 
     ctx.session.type = type
+    ctx.session.userId = id
     ctx.status = 200
     ctx.body = { type }
 })
@@ -49,6 +51,9 @@ router.post('/signup', async ctx => {
     }
 
     newUser.id = uuid()
+
+    ctx.session.type = newUser.type
+    ctx.session.userId = newUser.id
 
     ctx.body = (await db('user').insert(newUser).returning('*'))[0]
 })
