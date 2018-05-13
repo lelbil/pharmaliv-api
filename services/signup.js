@@ -4,13 +4,7 @@ const uuid = require('uuid/v4')
 
 const db = require('../db')
 const ERRORS = require('../common/errors')
-
-const contentToTypeMapping = {
-    ["patientContent"]: "patient",
-    ["doctorContent"]: "medecin",
-    ["pharmacistContent"]: "pharmacie",
-    ["deliveryManContent"]: "livreur"
-}
+const CONSTANTS = require('../common/constants')
 
 const getAdditionnalInfoInAppropriateTable = (userInfo, typeTable) => {
     const infoToInsert = {}
@@ -42,7 +36,7 @@ const getAdditionnalInfoInAppropriateTable = (userInfo, typeTable) => {
 exports.registerNewUser = async userInfo => {
     //TODO: validate body + type must be one of possible types
     //TODO: encrypt
-    const typeTable = contentToTypeMapping[userInfo.type]
+    const typeTable = CONSTANTS.contentToTypeMapping[userInfo.type]
 
     const additionalUserInfo = getAdditionnalInfoInAppropriateTable(userInfo, typeTable)
 
