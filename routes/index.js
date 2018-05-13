@@ -5,8 +5,9 @@ const KoaRouter = require('koa-router')
 const router = new KoaRouter()
 
 const db = require('../db')
+const signup = require('../services/signup')
 const ERRORS = require('../common/errors')
-const { PATIENT, DELIVERY_MAN, DOCTOR, PHARMACIST } = require('../common/enums')
+const CONSTANTS = require('../common/constants')
 
 router.get('/', async ctx => {
     ctx.body = JSON.stringify('Hello Koa!')
@@ -15,10 +16,13 @@ router.get('/', async ctx => {
 router.post('/login', async ctx => {
     //TODO: validate that the request body has (strictly) ctx.request.body
 
-    const [ dbUser ] = await db.select('type').from('user').where(ctx.request.body)
+    const [ dbUser ] = await db.select().from('user').where(ctx.request.body)
+
+    const typeTable = CONSTANTS.contentToTypeMapping[dbUser.type]
+    const [ userInfo ] = await db.select().from(typeTable).where({ userId: dbUser.id })
+
     if (! dbUser ) {
-        ctx.session.type = null
-        ctx.session.userId = null
+        ctx.session = null
         ctx.status = 401
         ctx.body = null
         return
@@ -28,6 +32,13 @@ router.post('/login', async ctx => {
 
     ctx.session.type = type
     ctx.session.userId = id
+    ctx.session.nom = userInfo.nom
+    ctx.session.prenom = userInfo.prenom
+    ctx.session.denomination = userInfo.denomination
+    ctx.session.dob = userInfo.dob
+    ctx.session.nss = userInfo.nss
+    ctx.session.siren = userInfo.siren
+
     ctx.status = 200
     ctx.body = { type }
 })
@@ -35,35 +46,39 @@ router.post('/login', async ctx => {
 router.post('/signup', async ctx => {
     //TODO: validate body + type must be one of possible types
     //TODO: encrypt
-
     const { body } = ctx.request
-    const newUser = {
-        user: body.user,
-        password: body.password,
-        type: body.type
+
+    try {
+        const result = await signup.registerNewUser(body)
+
+        ctx.session.type = result.loginInfo.type
+        ctx.session.userId = result.loginInfo.id
+        ctx.session.nom = result.additionalInfo.nom
+        ctx.session.prenom = result.additionalInfo.prenom
+        ctx.session.denomination = result.additionalInfo.denomination
+        ctx.session.dob = result.additionalInfo.dob
+        ctx.session.nss = result.additionalInfo.nss
+        ctx.session.siren = result.additionalInfo.siren
+
+        ctx.status = 201
+        ctx.body = result
+    } catch (error) {
+        if (error.name === ERRORS.ALREADY_EXISTS_ERROR) {
+            ctx.status = 400
+            ctx.body = `Username ${body.user} already exists!`
+            return
+        }
+        ctx.status = 500
+        console.log('Error occurred while registering user:', error)
     }
-
-    const [ duplicate ] =  await db.select().from('user').where({ user: newUser.user })
-    if (duplicate) {
-        ctx.status = 400
-        ctx.body = `Username ${newUser.user} already exists!`
-        return
-    }
-
-    newUser.id = uuid()
-
-    ctx.session.type = newUser.type
-    ctx.session.userId = newUser.id
-
-    ctx.body = (await db('user').insert(newUser).returning('*'))[0]
 })
 
 router.get('/logout', async ctx => {
     ctx.session.type = null
 })
 
-router.get('/type', async ctx => {
-    ctx.body = { type: ctx.session.type }
+router.get('/session', async ctx => {
+    ctx.body = ctx.session
 })
 
 module.exports = router
