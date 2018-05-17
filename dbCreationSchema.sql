@@ -1,4 +1,5 @@
 CREATE TYPE userType AS ENUM ('patientContent', 'deliveryManContent', 'doctorContent', 'pharmacistContent');
+CREATE TYPE medicamentCategorie AS ENUM ('MEDICAMENTS','HOMEO','SANTE','COMPLEMENTS_ALIMENTAIRES','PLANTES','VISAGE','CORPS','HYGIENE','CHEVEUX','BEBE','ORTHO','BIO','PROMO');
 
 CREATE TABLE "user" (
     id uuid PRIMARY KEY NOT NULL,
@@ -59,4 +60,16 @@ CREATE TABLE "livreur" (
     "adresse" varchar(254),
     "email" varchar(31),
     "tel" varchar(31)
+);
+
+CREATE TABLE "medicament" (
+    id uuid PRIMARY KEY NOT NULL,
+    "nom" varchar(31),
+    "description" varchar(120),
+    "imgLink" varchar(120),
+    "categorie" medicamentCategorie NOT NULL,
+    "prix" decimal,
+    "ordonnance" boolean,
+    "pharmacieId" uuid REFERENCES "pharmacie" ON DELETE CASCADE,
+    "inventaire" INTEGER
 );

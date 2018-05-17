@@ -38,6 +38,7 @@ router.post('/login', async ctx => {
     ctx.session.dob = userInfo.dob
     ctx.session.nss = userInfo.nss
     ctx.session.siren = userInfo.siren
+    ctx.session.userInfoId = userInfo.id
 
     ctx.status = 200
     ctx.body = { type }
@@ -59,6 +60,7 @@ router.post('/signup', async ctx => {
         ctx.session.dob = result.additionalInfo.dob
         ctx.session.nss = result.additionalInfo.nss
         ctx.session.siren = result.additionalInfo.siren
+        ctx.session.userInfoId = result.additionalInfo.id
 
         ctx.status = 201
         ctx.body = result
@@ -79,6 +81,27 @@ router.get('/logout', async ctx => {
 
 router.get('/session', async ctx => {
     ctx.body = ctx.session
+})
+
+router.post('/medicament', async ctx => {
+    const { type, userInfoId } = ctx.session
+    if (!type ) {
+        ctx.status = 401
+        return
+    }
+    if (type !== 'pharmacistContent') {
+        ctx.status = 403
+        return
+    }
+
+    const newMedicament = {
+        id: uuid(),
+        ...ctx.request.body,
+        pharmacieId: userInfoId,
+    }
+
+    ctx.body = (await db('medicament').insert(newMedicament).returning('*'))[0]
+    ctx.status = 201
 })
 
 module.exports = router
