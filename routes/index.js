@@ -104,4 +104,8 @@ router.post('/medicament', async ctx => {
     ctx.status = 201
 })
 
+router.get('/medicament', async ctx => {
+    ctx.body = await db('medicament').select('*')
+})
+
 module.exports = router
