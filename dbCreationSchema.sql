@@ -65,8 +65,8 @@ CREATE TABLE "livreur" (
 CREATE TABLE "medicament" (
     id uuid PRIMARY KEY NOT NULL,
     "nom" varchar(31),
-    "description" varchar(120),
-    "imgLink" varchar(120),
+    "description" varchar(254),
+    "imgLink" varchar(254),
     "categorie" medicamentCategorie NOT NULL,
     "prix" decimal,
     "ordonnance" boolean,

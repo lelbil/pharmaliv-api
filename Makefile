@@ -6,6 +6,7 @@ start:
 	@docker-compose up -d --build
 	@sleep 5
 	@make migrate
+	@docker exec api make seed
 	@make applog
 
 quit:
@@ -17,3 +18,6 @@ applog:
 
 migrate:
 	@node_modules/.bin/knex migrate:latest
+
+seed:
+	@node scripts/seed.js
