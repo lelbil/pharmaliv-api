@@ -108,4 +108,19 @@ router.get('/medicament', async ctx => {
     ctx.body = await db('medicament').select('*')
 })
 
+router.get('/mesMedicaments', async ctx => {
+    const { type, userInfoId } = ctx.session
+    if (!type ) {
+        ctx.status = 401
+        return
+    }
+    if (type !== 'pharmacistContent') {
+        ctx.status = 403
+        return
+    }
+    ctx.body = await db('medicament').select('*').where({ pharmacieId: userInfoId })
+})
+
+
+
 module.exports = router
