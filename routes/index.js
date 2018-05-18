@@ -21,7 +21,7 @@ router.post('/login', async ctx => {
     const typeTable = CONSTANTS.contentToTypeMapping[dbUser.type]
     const [ userInfo ] = await db.select().from(typeTable).where({ userId: dbUser.id })
 
-    if (! dbUser ) {
+    if ( !dbUser || !userInfo ) {
         ctx.session = null
         ctx.status = 401
         ctx.body = null
@@ -121,6 +121,40 @@ router.get('/mesMedicaments', async ctx => {
     ctx.body = await db('medicament').select('*').where({ pharmacieId: userInfoId })
 })
 
+router.post('/addToCart', async ctx => {
+    const { type, userInfoId } = ctx.session
+    if (!type ) {
+        ctx.status = 401
+        return
+    }
+    if (type !== 'patientContent') {
+        ctx.status = 403
+        return
+    }
 
+    const newCartItem = {
+        id: uuid(),
+        patientId: userInfoId,
+        medicamentId: ctx.request.body.medicamentId,
+        quantite: ctx.request.body.quantite,
+    }
+
+    ctx.body = (await db('panier').insert(newCartItem).returning('*'))[0]
+    ctx.status = 201
+})
+
+router.get('/cart', async ctx => {
+    const { type, userInfoId } = ctx.session
+    if (!type ) {
+        ctx.status = 401
+        return
+    }
+    if (type !== 'patientContent') {
+        ctx.status = 403
+        return
+    }
+
+    ctx.body = await db('panier').select('*').where({ patientId: userInfoId }).leftJoin('medicament', 'panier.medicamentId', 'medicament.id')
+})
 
 module.exports = router

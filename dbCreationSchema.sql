@@ -73,3 +73,10 @@ CREATE TABLE "medicament" (
     "pharmacieId" uuid REFERENCES "pharmacie" ON DELETE CASCADE,
     "inventaire" INTEGER
 );
+
+CREATE TABLE "panier" (
+    id uuid PRIMARY KEY NOT NULL,
+    "medicamentId" uuid REFERENCES "medicament",
+    "patientId" uuid REFERENCES "patient" ON DELETE CASCADE,
+    "quantite" INTEGER NOT NULL
+);
