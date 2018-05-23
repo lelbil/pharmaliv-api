@@ -154,7 +154,13 @@ router.get('/cart', async ctx => {
         return
     }
 
-    ctx.body = await db('panier').select('*').where({ patientId: userInfoId }).leftJoin('medicament', 'panier.medicamentId', 'medicament.id')
+    ctx.body = await db('panier').select(['panier.id as panier_id', '*']).where({ patientId: userInfoId }).join('medicament', 'panier.medicamentId', 'medicament.id')
+})
+
+router.delete('/cart/:id', async ctx => {
+    const { id } = ctx.params
+    //TODO: add verification that the deleter is the cart owner
+    ctx.body = await db('panier').del().where({ id })
 })
 
 module.exports = router
