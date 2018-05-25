@@ -3,6 +3,7 @@
 const uuid = require('uuid/v4')
 const KoaRouter = require('koa-router')
 const router = new KoaRouter()
+const _ = require('lodash')
 
 const db = require('../db')
 const signup = require('../services/signup')
@@ -137,6 +138,7 @@ router.post('/addToCart', async ctx => {
         patientId: userInfoId,
         medicamentId: ctx.request.body.medicamentId,
         quantite: ctx.request.body.quantite,
+        ordered: false,
     }
 
     ctx.body = (await db('panier').insert(newCartItem).returning('*'))[0]
@@ -154,13 +156,46 @@ router.get('/cart', async ctx => {
         return
     }
 
-    ctx.body = await db('panier').select(['panier.id as panier_id', '*']).where({ patientId: userInfoId }).join('medicament', 'panier.medicamentId', 'medicament.id')
+    ctx.body = await db('panier').select(['panier.id as panier_id', '*']).where({ patientId: userInfoId, ordered: false }).join('medicament', 'panier.medicamentId', 'medicament.id')
 })
 
 router.delete('/cart/:id', async ctx => {
     const { id } = ctx.params
     //TODO: add verification that the deleter is the cart owner
-    ctx.body = await db('panier').del().where({ id })
+    ctx.body = await db('panier').del().where({ id, ordered: false })
+})
+
+router.post('/order', async ctx => {
+    //TODO: add verification that the one ordering this is the cart owner
+    const panier = ctx.request.body
+    const relations = []
+    const commandes = []
+
+    _.forEach(_.groupBy(panier, 'pharmacieId'), (pharmacyElements, pharmacieId) => {
+        const commandeId = uuid()
+
+        relations.push(...(pharmacyElements.map(({ panier_id: panierId }) => {
+            return {
+                panierId,
+                commandeId,
+            }
+        })))
+        commandes.push({
+            id: commandeId,
+            type: 'domicile', //TODO: add support on-site preparation on front end
+            livreurId: null,
+            pharmacieId,
+            etat: 'ordered'
+        })
+    })
+
+    await Promise.all([
+        db('commande').insert(commandes),
+        db('panier').update({ ordered: true }).whereIn('id', panier.map(panier => panier.panier_id))
+    ])
+    await db('panierCommande').insert(relations)
+
+    ctx.status = 200
 })
 
 module.exports = router
