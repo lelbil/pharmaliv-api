@@ -201,6 +201,13 @@ router.post('/order', async ctx => {
     ctx.status = 200
 })
 
+router.put('/order/:id', async ctx => {
+    const { id } = ctx.params
+
+    await db('commande').update(ctx.request.body).where({ id })
+    ctx.status = 204
+})
+
 router.get('/:route/:etat', async ctx => {
     const { etat, route } = ctx.params
     const { type, userInfoId } = ctx.session
@@ -254,7 +261,6 @@ router.get('/:route/:etat', async ctx => {
     }
 
     ctx.body = result
-
 })
 
 module.exports = router
