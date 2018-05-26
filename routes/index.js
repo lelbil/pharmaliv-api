@@ -156,7 +156,10 @@ router.get('/cart', async ctx => {
         return
     }
 
-    ctx.body = await db('panier').select(['panier.id as panier_id', '*']).where({ patientId: userInfoId, ordered: false }).join('medicament', 'panier.medicamentId', 'medicament.id')
+    ctx.body = await db('panier')
+        .select(['panier.id as panier_id', '*'])
+        .where({ patientId: userInfoId, ordered: false })
+        .join('medicament', 'panier.medicamentId', 'medicament.id')
 })
 
 router.delete('/cart/:id', async ctx => {
@@ -196,6 +199,62 @@ router.post('/order', async ctx => {
     await db('panierCommande').insert(relations)
 
     ctx.status = 200
+})
+
+router.get('/:route/:etat', async ctx => {
+    const { etat, route } = ctx.params
+    const { type, userInfoId } = ctx.session
+
+    if (CONSTANTS.orderStates.indexOf(etat) < 0 && etat !== 'postorder' && route !== 'myPharmacyOrders' && route !== 'deliveries') {
+        ctx.status = 400
+        ctx.body = 'this state of order does not exist'
+        return
+    }
+    if (type !== 'pharmacistContent' && type !== 'deliveryManContent') {
+        ctx.status = 403
+        return
+    }
+
+    const rawData = await db('panierCommande').select('patient.nom as patient_nom' ,'*')
+        .join('panier', 'panierCommande.panierId', 'panier.id')
+        .join('commande', 'panierCommande.commandeId', 'commande.id')
+        .join('patient', 'panier.patientId', 'patient.id')
+        .join('medicament', 'panier.medicamentId', 'medicament.id')
+        .modify(qb => {
+            const requesterId = route === 'myPharmacyOrders' ? 'commande.pharmacieId' : 'commande.livreurId'
+            qb.where(requesterId, userInfoId)
+        })
+        .modify(qb => {
+            if (etat === 'postorder') qb.where('etat', '!=', 'ordered')
+            else qb.where('etat', etat)
+        })
+
+    const commandes = _.groupBy(rawData, 'commandeId')
+
+    const getDetailWithCount = detail => (detail.quantite === 1) ? detail.nom : `${detail.quantite}x ${detail.nom}`
+
+    const getDetails = details => {
+        if (details.length === 1) return getDetailWithCount(details[0])
+        return details.map(detail => getDetailWithCount(detail))
+    }
+
+    let commandeId
+    const result = []
+    for (commandeId in commandes) {
+        const details = commandes[commandeId]
+        const f = details[0]
+        result.push({
+            commandeId,
+            date: Date.parse(f.orderedAt)/1000,
+            nom: `${f.prenom} ${f.patient_nom}`,
+            address: f.adresse,
+            details: getDetails(details),
+            etat: f.etat,
+        })
+    }
+
+    ctx.body = result
+
 })
 
 module.exports = router

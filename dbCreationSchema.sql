@@ -86,6 +86,7 @@ CREATE TABLE "panier" (
 
 CREATE TABLE "commande" (
     id uuid PRIMARY KEY NOT NULL,
+    "orderedAt" TIMESTAMP WITH TIME ZONE NOT NULL default CURRENT_DATE,
     "type" commandeType NOT NULL,
     "livreurId" uuid REFERENCES "livreur",
     "pharmacieId" uuid REFERENCES "pharmacie",

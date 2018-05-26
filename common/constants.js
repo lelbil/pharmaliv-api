@@ -6,3 +6,5 @@ exports.contentToTypeMapping = {
     ["pharmacistContent"]: "pharmacie",
     ["deliveryManContent"]: "livreur"
 }
+
+exports.orderStates = ['ordered', 'prepared', 'pickedup', 'delivered', 'canceled', 'rejected', 'deliveryProblem']
