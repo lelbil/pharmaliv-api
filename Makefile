@@ -21,3 +21,7 @@ migrate:
 
 seed:
 	@node scripts/seed.js
+
+rap:
+	@docker-compose up -d --build app
+	@make applog
