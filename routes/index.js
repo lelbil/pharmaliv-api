@@ -238,11 +238,15 @@ router.get('/:route/:etat', async ctx => {
             .orWhere({ livreurId: userInfoId, etat: 'pickedup' })).length > 0
     }
 
-    const rawData = await db('panierCommande').select('patient.nom as patient_nom' ,'*')
+    const rawData = await db('panierCommande').select('patient.nom as patient_nom',
+        'pharmacie.denomination as pharmacie_nom',
+        'pharmacie.adresse as pharmacie_adresse' ,
+        '*')
         .join('panier', 'panierCommande.panierId', 'panier.id')
         .join('commande', 'panierCommande.commandeId', 'commande.id')
         .join('patient', 'panier.patientId', 'patient.id')
         .join('medicament', 'panier.medicamentId', 'medicament.id')
+        .join('pharmacie', 'commande.pharmacieId', 'pharmacie.id')
         .modify(qb => {
             if (route === 'myPharmacyOrders') {
                 qb.where('commande.pharmacieId', userInfoId)
@@ -294,6 +298,8 @@ router.get('/:route/:etat', async ctx => {
                 address: f.adresse,
                 details: getDetails(details),
                 etat: f.etat,
+                pharmacy: f.pharmacie_nom,
+                pharmacyAddress: f.pharmacie_adresse,
             })
         }
     }
