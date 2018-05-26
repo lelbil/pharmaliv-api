@@ -1,7 +1,7 @@
 CREATE TYPE userType AS ENUM ('patientContent', 'deliveryManContent', 'doctorContent', 'pharmacistContent');
 CREATE TYPE medicamentCategorie AS ENUM ('MEDICAMENTS','HOMEO','SANTE','COMPLEMENTS_ALIMENTAIRES','PLANTES','VISAGE','CORPS','HYGIENE','CHEVEUX','BEBE','ORTHO','BIO','PROMO');
 CREATE TYPE commandeType AS ENUM ('domicile', 'pharmacie');
-CREATE TYPE commandeEtat AS ENUM ('ordered', 'prepared', 'pickedup', 'delivered', 'canceled', 'rejected', 'deliveryProblem');
+CREATE TYPE commandeEtat AS ENUM ('ordered', 'prepared', 'accepted', 'pickedup', 'delivered', 'canceled', 'rejected', 'deliveryProblem');
 
 CREATE TABLE "user" (
     id uuid PRIMARY KEY NOT NULL,

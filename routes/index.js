@@ -203,8 +203,17 @@ router.post('/order', async ctx => {
 
 router.put('/order/:id', async ctx => {
     const { id } = ctx.params
+    const { type, userInfoId } = ctx.session
+    const body = ctx.request.body
+    if ( body.etat === 'accepted' && type === 'deliveryManContent' ) body.livreurId = userInfoId
+    else if ( body.etat === 'accepted' && type !== 'deliveryManContent' ) {
+        ctx.status = 400
+        ctx.body = 'You don\'t have the appropriate privileges to perform this action'
+        return
+    }
 
     await db('commande').update(ctx.request.body).where({ id })
+
     ctx.status = 204
 })
 
@@ -222,18 +231,45 @@ router.get('/:route/:etat', async ctx => {
         return
     }
 
+    let onGoingDeliveries = false
+    if (type === 'deliveryManContent') {
+        onGoingDeliveries = (await db('commande').select()
+            .where({ livreurId: userInfoId, etat: 'accepted' })
+            .orWhere({ livreurId: userInfoId, etat: 'pickedup' })).length > 0
+    }
+
     const rawData = await db('panierCommande').select('patient.nom as patient_nom' ,'*')
         .join('panier', 'panierCommande.panierId', 'panier.id')
         .join('commande', 'panierCommande.commandeId', 'commande.id')
         .join('patient', 'panier.patientId', 'patient.id')
         .join('medicament', 'panier.medicamentId', 'medicament.id')
         .modify(qb => {
-            const requesterId = route === 'myPharmacyOrders' ? 'commande.pharmacieId' : 'commande.livreurId'
-            qb.where(requesterId, userInfoId)
-        })
-        .modify(qb => {
-            if (etat === 'postorder') qb.where('etat', '!=', 'ordered')
-            else qb.where('etat', etat)
+            if (route === 'myPharmacyOrders') {
+                qb.where('commande.pharmacieId', userInfoId)
+
+                if (etat === 'postorder') qb.where('etat', '!=', 'ordered')
+                else qb.where('etat', etat)
+            }
+            else if (onGoingDeliveries && etat !== 'postorder') {
+                qb.where({
+                    'commande.livreurId': userInfoId,
+                    etat: 'accepted',
+                })
+                qb.orWhere({
+                    'commande.livreurId': userInfoId,
+                    etat: 'pickedup',
+                })
+            } else if (route === 'deliveries') {
+                if (etat !== 'postorder') qb.where({
+                    etat,
+                    'commande.livreurId': null,
+                })
+                else {
+                    qb.where('etat', '!=', 'accepted')
+                    qb.andWhere('etat', '!=', 'pickedup')
+                    qb.where('livreurId', userInfoId)
+                }
+            }
         })
 
     const commandes = _.groupBy(rawData, 'commandeId')
@@ -248,16 +284,18 @@ router.get('/:route/:etat', async ctx => {
     let commandeId
     const result = []
     for (commandeId in commandes) {
-        const details = commandes[commandeId]
-        const f = details[0]
-        result.push({
-            commandeId,
-            date: Date.parse(f.orderedAt)/1000,
-            nom: `${f.prenom} ${f.patient_nom}`,
-            address: f.adresse,
-            details: getDetails(details),
-            etat: f.etat,
-        })
+        if (commandes.hasOwnProperty(commandeId)) {
+            const details = commandes[commandeId]
+            const f = details[0]
+            result.push({
+                commandeId,
+                date: Date.parse(f.orderedAt)/1000,
+                nom: `${f.prenom} ${f.patient_nom}`,
+                address: f.adresse,
+                details: getDetails(details),
+                etat: f.etat,
+            })
+        }
     }
 
     ctx.body = result
