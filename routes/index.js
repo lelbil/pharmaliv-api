@@ -226,7 +226,7 @@ router.get('/:route/:etat', async ctx => {
         ctx.body = 'this state of order does not exist'
         return
     }
-    if (type !== 'pharmacistContent' && type !== 'deliveryManContent') {
+    if (type !== 'pharmacistContent' && type !== 'deliveryManContent' && type !== 'patientContent') {
         ctx.status = 403
         return
     }
@@ -273,6 +273,11 @@ router.get('/:route/:etat', async ctx => {
                     qb.andWhere('etat', '!=', 'pickedup')
                     qb.where('livreurId', userInfoId)
                 }
+            } else if (route === 'mymeds') {
+                qb.where({
+                    'panier.patientId': userInfoId,
+                    ordered: true,
+                })
             }
         })
 
