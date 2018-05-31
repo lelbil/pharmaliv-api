@@ -4,11 +4,27 @@ const uuid = require('uuid/v4')
 const KoaRouter = require('koa-router')
 const router = new KoaRouter()
 const _ = require('lodash')
+const AWS = require('aws-sdk')
+
+const hash = require('string-hash')
 
 const db = require('../db')
 const signup = require('../services/signup')
 const ERRORS = require('../common/errors')
 const CONSTANTS = require('../common/constants')
+
+const accessKeyId = process.env.ACCESS_KEY_ID
+const secretAccessKey = process.env.SECRET_ACCESS_KEY
+
+let s3
+if (accessKeyId && secretAccessKey) {
+    s3 = new AWS.S3({
+        accessKeyId, secretAccessKey, region: 'eu-west-3'
+    })
+} else {
+    s3 = new AWS.S3()
+    AWS.config.loadFromPath('cdnCreds.json')
+}
 
 router.get('/', async ctx => {
     ctx.body = JSON.stringify('Hello Koa!')
@@ -29,10 +45,11 @@ router.post('/login', async ctx => {
         return
     }
 
-    const { type, id } = dbUser
+    const { type, id, profilePic } = dbUser
 
     ctx.session.type = type
     ctx.session.userId = id
+    ctx.session.profilePic = profilePic
     ctx.session.nom = userInfo.nom
     ctx.session.prenom = userInfo.prenom
     ctx.session.denomination = userInfo.denomination
@@ -55,6 +72,7 @@ router.post('/signup', async ctx => {
 
         ctx.session.type = result.loginInfo.type
         ctx.session.userId = result.loginInfo.id
+        ctx.session.profilePic = result.loginInfo.profilePic
         ctx.session.nom = result.additionalInfo.nom
         ctx.session.prenom = result.additionalInfo.prenom
         ctx.session.denomination = result.additionalInfo.denomination
@@ -77,7 +95,7 @@ router.post('/signup', async ctx => {
 })
 
 router.get('/logout', async ctx => {
-    ctx.session.type = null
+    ctx.session = null
 })
 
 router.get('/session', async ctx => {
@@ -215,6 +233,20 @@ router.put('/order/:id', async ctx => {
     await db('commande').update(ctx.request.body).where({ id })
 
     ctx.status = 204
+})
+
+router.get('/sign-s3', async ctx => {
+    const {fileName, fileType} = ctx.request.query
+    const hashedFileName = hash(fileName).toString()
+
+    const s3Params = {
+        Bucket: 'profilpics',
+        Key: hashedFileName,
+        ContentType: fileType,
+        ACL: 'public-read'
+    }
+
+    return ctx.body = { signedRequest: s3.getSignedUrl('putObject', s3Params), url: `https://profilpics.s3.eu-west-3.amazonaws.com/${hashedFileName}` }
 })
 
 router.get('/:route/:etat', async ctx => {

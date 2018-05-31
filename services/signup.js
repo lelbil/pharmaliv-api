@@ -43,7 +43,8 @@ exports.registerNewUser = async userInfo => {
     const newUser = {
         user: userInfo.user,
         password: userInfo.password,
-        type: userInfo.type
+        type: userInfo.type,
+        profilePic: userInfo.profilePic || "http://s3.amazonaws.com/37assets/svn/765-default-avatar.png"
     }
 
     const [ duplicate ] =  await db.select().from('user').where({ user: newUser.user })

@@ -10,6 +10,7 @@ CREATE TABLE "user" (
     "user" varchar(55) NOT NULL,
     "password" varchar(55) NOT NULL,
     "type" userType NOT NULL,
+    "profilePic" varchar(254) NOT NULL,
     unique("user")
 );
 

@@ -18,24 +18,28 @@ const users = [
         user: "patient",
         password: "patient",
         type: "patientContent",
+        profilePic: "http://s3.amazonaws.com/37assets/svn/765-default-avatar.png",
     },
     {
         id: pharmacienId,
         user: "pharmacien",
         password: "pharmacien",
         type: "pharmacistContent",
+        profilePic: "http://s3.amazonaws.com/37assets/svn/765-default-avatar.png",
     },
     {
         id: medecinId,
         user: "medecin",
         password: "medecin",
         type: "doctorContent",
+        profilePic: "http://s3.amazonaws.com/37assets/svn/765-default-avatar.png",
     },
     {
         id: livreurId,
         user: "livreur",
         password: "livreur",
         type: "deliveryManContent",
+        profilePic: "http://s3.amazonaws.com/37assets/svn/765-default-avatar.png",
     },
 ]
 
