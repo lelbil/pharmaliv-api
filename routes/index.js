@@ -94,6 +94,20 @@ router.post('/signup', async ctx => {
     }
 })
 
+router.get('/info', async ctx => {
+    const { userId, userInfoId, type } = ctx.session
+    let tableName = ''
+    let t
+    for (t in CONSTANTS.contentToTypeMapping) {
+        if (t === type) tableName = CONSTANTS.contentToTypeMapping[t]
+    }
+
+    const [user] = await db('user').select().where({ id: userId })
+    const [userInfo] = await db(tableName).select().where({ id: userInfoId })
+
+    ctx.body = { ...userInfo, ...user }
+})
+
 router.get('/logout', async ctx => {
     ctx.session = null
 })
