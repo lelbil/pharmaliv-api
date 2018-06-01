@@ -68,7 +68,7 @@ router.post('/signup', async ctx => {
     const { body } = ctx.request
 
     try {
-        const result = await signup.registerNewUser(body)
+        const result = await signup.registerOrUpdateUser(body)
 
         ctx.session.type = result.loginInfo.type
         ctx.session.userId = result.loginInfo.id
@@ -94,6 +94,34 @@ router.post('/signup', async ctx => {
     }
 })
 
+router.put('/signup', async ctx => {
+    //TODO: validate body + type must be one of possible types
+    //TODO: encrypt
+    const { body } = ctx.request
+    const { userId, userInfoId } = ctx.request.query
+
+    try {
+        const result = await signup.registerOrUpdateUser(body, true, userId, userInfoId)
+
+        ctx.session.type = result.loginInfo.type
+        ctx.session.userId = result.loginInfo.id
+        ctx.session.profilePic = result.loginInfo.profilePic
+        ctx.session.nom = result.additionalInfo.nom
+        ctx.session.prenom = result.additionalInfo.prenom
+        ctx.session.denomination = result.additionalInfo.denomination
+        ctx.session.dob = result.additionalInfo.dob
+        ctx.session.nss = result.additionalInfo.nss
+        ctx.session.siren = result.additionalInfo.siren
+        ctx.session.userInfoId = result.additionalInfo.id
+
+        ctx.status = 201
+        ctx.body = result
+    } catch (error) {
+        ctx.status = 500
+        console.log('Error occurred while updating user:', error)
+    }
+})
+
 router.get('/info', async ctx => {
     const { userId, userInfoId, type } = ctx.session
     let tableName = ''
@@ -105,7 +133,7 @@ router.get('/info', async ctx => {
     const [user] = await db('user').select().where({ id: userId })
     const [userInfo] = await db(tableName).select().where({ id: userInfoId })
 
-    ctx.body = { ...userInfo, ...user }
+    ctx.body = { ...user, ...userInfo, }
 })
 
 router.get('/logout', async ctx => {
