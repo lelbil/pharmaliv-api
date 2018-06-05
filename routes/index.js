@@ -182,6 +182,10 @@ router.get('/mesMedicaments', async ctx => {
     ctx.body = await db('medicament').select('*').where({ pharmacieId: userInfoId })
 })
 
+router.get('/pharmacies', async ctx => {
+    ctx.body = await db('pharmacie').select('*')
+})
+
 router.post('/addToCart', async ctx => {
     const { type, userInfoId } = ctx.session
     if (!type ) {
