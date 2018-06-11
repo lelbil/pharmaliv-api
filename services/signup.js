@@ -33,7 +33,7 @@ const getAdditionnalInfoInAppropriateTable = (userInfo, typeTable) => {
     return infoToInsert
 }
 
-exports.registerNewUser = async userInfo => {
+exports.registerOrUpdateUser = async (userInfo, isUpdate, userId, userInfoId) => {
     //TODO: validate body + type must be one of possible types
     //TODO: encrypt
     const typeTable = CONSTANTS.contentToTypeMapping[userInfo.type]
@@ -43,21 +43,34 @@ exports.registerNewUser = async userInfo => {
     const newUser = {
         user: userInfo.user,
         password: userInfo.password,
-        type: userInfo.type
+        type: userInfo.type,
     }
 
-    const [ duplicate ] =  await db.select().from('user').where({ user: newUser.user })
-    if (duplicate) {
-        throw {name: ERRORS.ALREADY_EXISTS_ERROR, message: `Can't sign up with already existent login`}
+    if (isUpdate && userInfo.profilePic) newUser.profilePic = userInfo.profilePic
+
+    let loginInfo
+    let additionalInfo
+
+    if (! isUpdate ) {
+        const [duplicate] = await db.select().from('user').where({user: userInfo.user})
+        if (duplicate) {
+            throw {name: ERRORS.ALREADY_EXISTS_ERROR, message: `Can't sign up with already existent login`}
+        }
+
+        newUser.profilePic = userInfo.profilePic || "http://s3.amazonaws.com/37assets/svn/765-default-avatar.png"
+
+        const newId = uuid()
+        newUser.id = newId
+        additionalUserInfo.id = uuid()
+        additionalUserInfo.userId = newId
+
+        loginInfo = await db('user').insert(newUser).returning('*')
+        additionalInfo = await db(typeTable).insert(additionalUserInfo).returning('*')
     }
-
-    const newId = uuid()
-    newUser.id = newId
-    additionalUserInfo.id = uuid()
-    additionalUserInfo.userId = newId
-
-    const loginInfo = await db('user').insert(newUser).returning('*')
-    const additionalInfo = await db(typeTable).insert(additionalUserInfo).returning('*')
+    else {
+        loginInfo = await db('user').update(newUser).where({ id: userId }).returning('*')
+        additionalInfo = await db(typeTable).update(additionalUserInfo).where({ id: userInfoId }).returning('*')
+    }
 
     return { loginInfo: loginInfo[0], additionalInfo: additionalInfo[0] }
 }

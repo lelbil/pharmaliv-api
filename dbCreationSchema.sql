@@ -1,4 +1,7 @@
 CREATE TYPE userType AS ENUM ('patientContent', 'deliveryManContent', 'doctorContent', 'pharmacistContent');
+CREATE TYPE medicamentCategorie AS ENUM ('MEDICAMENTS','HOMEO','SANTE','COMPLEMENTS_ALIMENTAIRES','PLANTES','VISAGE','CORPS','HYGIENE','CHEVEUX','BEBE','ORTHO','BIO','PROMO');
+CREATE TYPE commandeType AS ENUM ('domicile', 'pharmacie');
+CREATE TYPE commandeEtat AS ENUM ('ordered', 'prepared', 'accepted', 'pickedup', 'delivered', 'canceled', 'rejected', 'deliveryProblem');
 
 CREATE TABLE "user" (
     id uuid PRIMARY KEY NOT NULL,
@@ -7,6 +10,7 @@ CREATE TABLE "user" (
     "user" varchar(55) NOT NULL,
     "password" varchar(55) NOT NULL,
     "type" userType NOT NULL,
+    "profilePic" varchar(254) NOT NULL,
     unique("user")
 );
 
@@ -59,4 +63,38 @@ CREATE TABLE "livreur" (
     "adresse" varchar(254),
     "email" varchar(31),
     "tel" varchar(31)
+);
+
+CREATE TABLE "medicament" (
+    id uuid PRIMARY KEY NOT NULL,
+    "nom" varchar(31),
+    "description" varchar(254),
+    "imgLink" varchar(254),
+    "categorie" medicamentCategorie NOT NULL,
+    "prix" decimal,
+    "ordonnance" boolean,
+    "pharmacieId" uuid REFERENCES "pharmacie" ON DELETE CASCADE,
+    "inventaire" INTEGER
+);
+
+CREATE TABLE "panier" (
+    id uuid PRIMARY KEY NOT NULL,
+    "medicamentId" uuid REFERENCES "medicament",
+    "patientId" uuid REFERENCES "patient" ON DELETE CASCADE,
+    "quantite" INTEGER NOT NULL,
+    "ordered" boolean
+);
+
+CREATE TABLE "commande" (
+    id uuid PRIMARY KEY NOT NULL,
+    "orderedAt" TIMESTAMP WITH TIME ZONE NOT NULL default CURRENT_DATE,
+    "type" commandeType NOT NULL,
+    "livreurId" uuid REFERENCES "livreur",
+    "pharmacieId" uuid REFERENCES "pharmacie",
+    "etat" commandeEtat NOT NULL
+);
+
+CREATE TABLE "panierCommande" (
+    "panierId" uuid REFERENCES "panier",
+    "commandeId" uuid REFERENCES "commande"
 );
