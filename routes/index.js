@@ -385,6 +385,7 @@ router.get('/:route/:etat', async ctx => {
                 etat: f.etat,
                 pharmacy: f.pharmacie_nom,
                 pharmacyAddress: f.pharmacie_adresse,
+                ordonnanceURL: f.ordonnanceURL,
             })
         }
     }
