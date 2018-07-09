@@ -347,6 +347,7 @@ router.get('/:route/:etat', async ctx => {
             } else if (route === 'deliveries') {
                 if (etat !== 'postorder') qb.where({
                     etat,
+                    type: 'domicile',
                     'commande.livreurId': null,
                 })
                 else {
