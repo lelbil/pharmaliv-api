@@ -235,7 +235,7 @@ router.delete('/cart/:id', async ctx => {
 router.post('/order', async ctx => {
     //TODO: add verification that the one ordering this is the cart owner
     const { panier } = ctx.request.body
-    const { ordonnanceURL } = ctx.request.body
+    const { ordonnanceURL, type } = ctx.request.body
     const relations = []
     const commandes = []
 
@@ -250,7 +250,7 @@ router.post('/order', async ctx => {
         })))
         commandes.push({
             id: commandeId,
-            type: 'domicile', //TODO: add support on-site preparation on front end
+            type: type || 'domicile',
             livreurId: null,
             pharmacieId,
             etat: 'ordered',
