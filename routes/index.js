@@ -319,6 +319,7 @@ router.get('/:route/:etat', async ctx => {
     }
 
     const rawData = await db('panierCommande').select('patient.nom as patient_nom',
+        'patient.adresse as patient_adresse',
         'pharmacie.denomination as pharmacie_nom',
         'pharmacie.adresse as pharmacie_adresse' ,
         '*')
@@ -381,6 +382,7 @@ router.get('/:route/:etat', async ctx => {
                 date: Date.parse(f.orderedAt)/1000,
                 nom: `${f.prenom} ${f.patient_nom}`,
                 address: f.adresse,
+                patientAddress: f.patient_adresse,
                 details: getDetails(details),
                 etat: f.etat,
                 pharmacy: f.pharmacie_nom,
