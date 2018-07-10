@@ -16,6 +16,7 @@ const getAdditionnalInfoInAppropriateTable = (userInfo, typeTable) => {
     if (typeTable === "patient") {
         infoToInsert.nss = userInfo.nss
         infoToInsert.dob = userInfo.dob
+        if (userInfo.doctorInfoId) infoToInsert.doctorInfoId = userInfo.doctorInfoId
     }
 
     if (typeTable === "pharmacie") {

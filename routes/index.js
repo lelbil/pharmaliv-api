@@ -65,21 +65,30 @@ router.post('/login', async ctx => {
 router.post('/signup', async ctx => {
     //TODO: validate body + type must be one of possible types
     //TODO: encrypt
-    const { body } = ctx.request
+    let { body } = ctx.request
+    const { type, userInfoId } = ctx.session
+    let isBeingAddedByDoctor = false
 
     try {
+        if (type === 'doctorContent') {
+            body.doctorInfoId = userInfoId
+            isBeingAddedByDoctor = true
+        }
+
         const result = await signup.registerOrUpdateUser(body)
 
-        ctx.session.type = result.loginInfo.type
-        ctx.session.userId = result.loginInfo.id
-        ctx.session.profilePic = result.loginInfo.profilePic
-        ctx.session.nom = result.additionalInfo.nom
-        ctx.session.prenom = result.additionalInfo.prenom
-        ctx.session.denomination = result.additionalInfo.denomination
-        ctx.session.dob = result.additionalInfo.dob
-        ctx.session.nss = result.additionalInfo.nss
-        ctx.session.siren = result.additionalInfo.siren
-        ctx.session.userInfoId = result.additionalInfo.id
+        if (!isBeingAddedByDoctor) {
+            ctx.session.type = result.loginInfo.type
+            ctx.session.userId = result.loginInfo.id
+            ctx.session.profilePic = result.loginInfo.profilePic
+            ctx.session.nom = result.additionalInfo.nom
+            ctx.session.prenom = result.additionalInfo.prenom
+            ctx.session.denomination = result.additionalInfo.denomination
+            ctx.session.dob = result.additionalInfo.dob
+            ctx.session.nss = result.additionalInfo.nss
+            ctx.session.siren = result.additionalInfo.siren
+            ctx.session.userInfoId = result.additionalInfo.id
+        }
 
         ctx.status = 201
         ctx.body = result
