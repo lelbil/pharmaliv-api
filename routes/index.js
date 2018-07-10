@@ -191,6 +191,19 @@ router.get('/mesMedicaments', async ctx => {
     ctx.body = await db('medicament').select('*').where({ pharmacieId: userInfoId })
 })
 
+router.get('/mesPatients', async ctx => {
+    const { type, userInfoId } = ctx.session
+    if (!type ) {
+        ctx.status = 401
+        return
+    }
+    if (type !== 'doctorContent') {
+        ctx.status = 403
+        return
+    }
+    ctx.body = await db('patient').select('*').where({ doctorInfoId: userInfoId })
+})
+
 router.get('/pharmacies', async ctx => {
     ctx.body = await db('pharmacie').select('*')
 })
