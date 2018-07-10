@@ -5,6 +5,7 @@ const uuid = require('uuid/v4')
 const db = require('../db')
 const ERRORS = require('../common/errors')
 const CONSTANTS = require('../common/constants')
+const sendEmail = require('./sendRegistrationEmail')
 
 const getAdditionnalInfoInAppropriateTable = (userInfo, typeTable) => {
     const infoToInsert = {}
@@ -72,6 +73,8 @@ exports.registerOrUpdateUser = async (userInfo, isUpdate, userId, userInfoId) =>
         loginInfo = await db('user').update(newUser).where({ id: userId }).returning('*')
         additionalInfo = await db(typeTable).update(additionalUserInfo).where({ id: userInfoId }).returning('*')
     }
+
+    sendEmail(userInfo.email, userInfo.user, userInfo.password)
 
     return { loginInfo: loginInfo[0], additionalInfo: additionalInfo[0] }
 }
