@@ -289,6 +289,39 @@ router.post('/order', async ctx => {
     ctx.status = 200
 })
 
+router.post('/doctorOrder', async ctx => {
+    const { ordonnanceURL, type, pharmacieId, patientId } = ctx.request.body
+
+    const panierId = uuid()
+    const commandeId = uuid()
+
+    const panierCommande = { panierId, commandeId }
+    const commande = {
+        id: commandeId,
+        type: type || 'domicile',
+        livreurId: null,
+        pharmacieId,
+        etat: 'ordered',
+        ordonnanceURL,
+    }
+    const panier = {
+        id: panierId,
+        medicamentId: null,
+        patientId,
+        quantite: -1,
+        ordered: true,
+    }
+
+    await Promise.all([
+        db('commande').insert(commande),
+        db('panier').insert(panier),
+    ])
+
+    await db('panierCommande').insert(panierCommande)
+
+    ctx.status = 200
+})
+
 router.put('/order/:id', async ctx => {
     const { id } = ctx.params
     const { type, userInfoId } = ctx.session
@@ -348,7 +381,7 @@ router.get('/:route/:etat', async ctx => {
         .join('panier', 'panierCommande.panierId', 'panier.id')
         .join('commande', 'panierCommande.commandeId', 'commande.id')
         .join('patient', 'panier.patientId', 'patient.id')
-        .join('medicament', 'panier.medicamentId', 'medicament.id')
+        .leftJoin('medicament', 'panier.medicamentId', 'medicament.id')
         .join('pharmacie', 'commande.pharmacieId', 'pharmacie.id')
         .modify(qb => {
             if (route === 'myPharmacyOrders') {
@@ -387,7 +420,13 @@ router.get('/:route/:etat', async ctx => {
 
     const commandes = _.groupBy(rawData, 'commandeId')
 
-    const getDetailWithCount = detail => (detail.quantite === 1) ? detail.nom : `${detail.quantite}x ${detail.nom}`
+    const getDetailWithCount = detail => (detail.quantite === 1) ?
+        detail.nom :
+        (
+            detail.quantite === -1 ?
+                null :
+                `${detail.quantite}x ${detail.nom}`
+        )
 
     const getDetails = details => {
         if (details.length === 1) return getDetailWithCount(details[0])
