@@ -291,6 +291,7 @@ router.post('/order', async ctx => {
 
 router.post('/doctorOrder', async ctx => {
     const { ordonnanceURL, type, pharmacieId, patientId } = ctx.request.body
+    const { userInfoId: medecinId } = ctx.session
 
     const panierId = uuid()
     const commandeId = uuid()
@@ -301,6 +302,7 @@ router.post('/doctorOrder', async ctx => {
         type: type || 'domicile',
         livreurId: null,
         pharmacieId,
+        medecinId,
         etat: 'ordered',
         ordonnanceURL,
     }
@@ -356,13 +358,9 @@ router.get('/:route/:etat', async ctx => {
     const { etat, route } = ctx.params
     const { type, userInfoId } = ctx.session
 
-    if (CONSTANTS.orderStates.indexOf(etat) < 0 && etat !== 'postorder' && route !== 'myPharmacyOrders' && route !== 'deliveries') {
+    if ([...CONSTANTS.orderStates, 'all'].indexOf(etat) < 0 && etat !== 'postorder' && route !== 'myPharmacyOrders' && route !== 'deliveries' && route !== 'doctor') {
         ctx.status = 400
         ctx.body = 'this state of order does not exist'
-        return
-    }
-    if (type !== 'pharmacistContent' && type !== 'deliveryManContent' && type !== 'patientContent') {
-        ctx.status = 403
         return
     }
 
@@ -399,7 +397,8 @@ router.get('/:route/:etat', async ctx => {
                     'commande.livreurId': userInfoId,
                     etat: 'pickedup',
                 })
-            } else if (route === 'deliveries') {
+            }
+            else if (route === 'deliveries') {
                 if (etat !== 'postorder') qb.where({
                     etat,
                     type: 'domicile',
@@ -410,11 +409,14 @@ router.get('/:route/:etat', async ctx => {
                     qb.andWhere('etat', '!=', 'pickedup')
                     qb.where('livreurId', userInfoId)
                 }
-            } else if (route === 'mymeds') {
+            }
+            else if (route === 'mymeds') {
                 qb.where({
                     'panier.patientId': userInfoId,
                     ordered: true,
                 })
+            } else if (route === 'doctor') {
+                qb.where({ 'commande.medecinId': userInfoId })
             }
         })
 

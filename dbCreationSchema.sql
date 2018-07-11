@@ -92,6 +92,7 @@ CREATE TABLE "commande" (
     "type" commandeType NOT NULL,
     "livreurId" uuid REFERENCES "livreur",
     "pharmacieId" uuid REFERENCES "pharmacie",
+    "medecinId" uuid REFERENCES "medecin",
     "etat" commandeEtat NOT NULL,
     "ordonnanceURL" varchar(254)
 );
