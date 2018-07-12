@@ -65,21 +65,30 @@ router.post('/login', async ctx => {
 router.post('/signup', async ctx => {
     //TODO: validate body + type must be one of possible types
     //TODO: encrypt
-    const { body } = ctx.request
+    let { body } = ctx.request
+    const { type, userInfoId } = ctx.session
+    let isBeingAddedByDoctor = false
 
     try {
+        if (type === 'doctorContent') {
+            body.doctorInfoId = userInfoId
+            isBeingAddedByDoctor = true
+        }
+
         const result = await signup.registerOrUpdateUser(body)
 
-        ctx.session.type = result.loginInfo.type
-        ctx.session.userId = result.loginInfo.id
-        ctx.session.profilePic = result.loginInfo.profilePic
-        ctx.session.nom = result.additionalInfo.nom
-        ctx.session.prenom = result.additionalInfo.prenom
-        ctx.session.denomination = result.additionalInfo.denomination
-        ctx.session.dob = result.additionalInfo.dob
-        ctx.session.nss = result.additionalInfo.nss
-        ctx.session.siren = result.additionalInfo.siren
-        ctx.session.userInfoId = result.additionalInfo.id
+        if (!isBeingAddedByDoctor) {
+            ctx.session.type = result.loginInfo.type
+            ctx.session.userId = result.loginInfo.id
+            ctx.session.profilePic = result.loginInfo.profilePic
+            ctx.session.nom = result.additionalInfo.nom
+            ctx.session.prenom = result.additionalInfo.prenom
+            ctx.session.denomination = result.additionalInfo.denomination
+            ctx.session.dob = result.additionalInfo.dob
+            ctx.session.nss = result.additionalInfo.nss
+            ctx.session.siren = result.additionalInfo.siren
+            ctx.session.userInfoId = result.additionalInfo.id
+        }
 
         ctx.status = 201
         ctx.body = result
@@ -182,6 +191,19 @@ router.get('/mesMedicaments', async ctx => {
     ctx.body = await db('medicament').select('*').where({ pharmacieId: userInfoId })
 })
 
+router.get('/mesPatients', async ctx => {
+    const { type, userInfoId } = ctx.session
+    if (!type ) {
+        ctx.status = 401
+        return
+    }
+    if (type !== 'doctorContent') {
+        ctx.status = 403
+        return
+    }
+    ctx.body = await db('patient').select('*').where({ doctorInfoId: userInfoId })
+})
+
 router.get('/pharmacies', async ctx => {
     ctx.body = await db('pharmacie').select('*')
 })
@@ -234,7 +256,8 @@ router.delete('/cart/:id', async ctx => {
 
 router.post('/order', async ctx => {
     //TODO: add verification that the one ordering this is the cart owner
-    const panier = ctx.request.body
+    const { panier } = ctx.request.body
+    const { ordonnanceURL, type } = ctx.request.body
     const relations = []
     const commandes = []
 
@@ -249,10 +272,11 @@ router.post('/order', async ctx => {
         })))
         commandes.push({
             id: commandeId,
-            type: 'domicile', //TODO: add support on-site preparation on front end
+            type: type || 'domicile',
             livreurId: null,
             pharmacieId,
-            etat: 'ordered'
+            etat: 'ordered',
+            ordonnanceURL,
         })
     })
 
@@ -261,6 +285,41 @@ router.post('/order', async ctx => {
         db('panier').update({ ordered: true }).whereIn('id', panier.map(panier => panier.panier_id))
     ])
     await db('panierCommande').insert(relations)
+
+    ctx.status = 200
+})
+
+router.post('/doctorOrder', async ctx => {
+    const { ordonnanceURL, type, pharmacieId, patientId } = ctx.request.body
+    const { userInfoId: medecinId } = ctx.session
+
+    const panierId = uuid()
+    const commandeId = uuid()
+
+    const panierCommande = { panierId, commandeId }
+    const commande = {
+        id: commandeId,
+        type: type || 'domicile',
+        livreurId: null,
+        pharmacieId,
+        medecinId,
+        etat: 'ordered',
+        ordonnanceURL,
+    }
+    const panier = {
+        id: panierId,
+        medicamentId: null,
+        patientId,
+        quantite: -1,
+        ordered: true,
+    }
+
+    await Promise.all([
+        db('commande').insert(commande),
+        db('panier').insert(panier),
+    ])
+
+    await db('panierCommande').insert(panierCommande)
 
     ctx.status = 200
 })
@@ -299,13 +358,9 @@ router.get('/:route/:etat', async ctx => {
     const { etat, route } = ctx.params
     const { type, userInfoId } = ctx.session
 
-    if (CONSTANTS.orderStates.indexOf(etat) < 0 && etat !== 'postorder' && route !== 'myPharmacyOrders' && route !== 'deliveries') {
+    if ([...CONSTANTS.orderStates, 'all'].indexOf(etat) < 0 && etat !== 'postorder' && route !== 'myPharmacyOrders' && route !== 'deliveries' && route !== 'doctor') {
         ctx.status = 400
         ctx.body = 'this state of order does not exist'
-        return
-    }
-    if (type !== 'pharmacistContent' && type !== 'deliveryManContent' && type !== 'patientContent') {
-        ctx.status = 403
         return
     }
 
@@ -317,13 +372,14 @@ router.get('/:route/:etat', async ctx => {
     }
 
     const rawData = await db('panierCommande').select('patient.nom as patient_nom',
+        'patient.adresse as patient_adresse',
         'pharmacie.denomination as pharmacie_nom',
         'pharmacie.adresse as pharmacie_adresse' ,
         '*')
         .join('panier', 'panierCommande.panierId', 'panier.id')
         .join('commande', 'panierCommande.commandeId', 'commande.id')
         .join('patient', 'panier.patientId', 'patient.id')
-        .join('medicament', 'panier.medicamentId', 'medicament.id')
+        .leftJoin('medicament', 'panier.medicamentId', 'medicament.id')
         .join('pharmacie', 'commande.pharmacieId', 'pharmacie.id')
         .modify(qb => {
             if (route === 'myPharmacyOrders') {
@@ -341,9 +397,11 @@ router.get('/:route/:etat', async ctx => {
                     'commande.livreurId': userInfoId,
                     etat: 'pickedup',
                 })
-            } else if (route === 'deliveries') {
+            }
+            else if (route === 'deliveries') {
                 if (etat !== 'postorder') qb.where({
                     etat,
+                    type: 'domicile',
                     'commande.livreurId': null,
                 })
                 else {
@@ -351,17 +409,26 @@ router.get('/:route/:etat', async ctx => {
                     qb.andWhere('etat', '!=', 'pickedup')
                     qb.where('livreurId', userInfoId)
                 }
-            } else if (route === 'mymeds') {
+            }
+            else if (route === 'mymeds') {
                 qb.where({
                     'panier.patientId': userInfoId,
                     ordered: true,
                 })
+            } else if (route === 'doctor') {
+                qb.where({ 'commande.medecinId': userInfoId })
             }
         })
 
     const commandes = _.groupBy(rawData, 'commandeId')
 
-    const getDetailWithCount = detail => (detail.quantite === 1) ? detail.nom : `${detail.quantite}x ${detail.nom}`
+    const getDetailWithCount = detail => (detail.quantite === 1) ?
+        detail.nom :
+        (
+            detail.quantite === -1 ?
+                null :
+                `${detail.quantite}x ${detail.nom}`
+        )
 
     const getDetails = details => {
         if (details.length === 1) return getDetailWithCount(details[0])
@@ -379,10 +446,13 @@ router.get('/:route/:etat', async ctx => {
                 date: Date.parse(f.orderedAt)/1000,
                 nom: `${f.prenom} ${f.patient_nom}`,
                 address: f.adresse,
+                patientAddress: f.patient_adresse,
                 details: getDetails(details),
                 etat: f.etat,
                 pharmacy: f.pharmacie_nom,
                 pharmacyAddress: f.pharmacie_adresse,
+                ordonnanceURL: f.ordonnanceURL,
+                type: f.type,
             })
         }
     }

@@ -14,20 +14,6 @@ CREATE TABLE "user" (
     unique("user")
 );
 
-CREATE TABLE "patient" (
-    id uuid PRIMARY KEY NOT NULL,
-    "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL default CURRENT_DATE,
-    "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL default CURRENT_DATE,
-    "userId" uuid REFERENCES "user" ON DELETE CASCADE,
-    "nom" varchar(31),
-    "prenom" varchar(31),
-    "dob" DATE,
-    "adresse" varchar(254),
-    "email" varchar(31),
-    "tel" varchar(31),
-    "nss" varchar(31)
-);
-
 CREATE TABLE "medecin" (
     id uuid PRIMARY KEY NOT NULL,
     "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL default CURRENT_DATE,
@@ -38,6 +24,21 @@ CREATE TABLE "medecin" (
     "adresse" varchar(254),
     "email" varchar(31),
     "tel" varchar(31)
+);
+
+CREATE TABLE "patient" (
+    id uuid PRIMARY KEY NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL default CURRENT_DATE,
+    "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL default CURRENT_DATE,
+    "userId" uuid REFERENCES "user" ON DELETE CASCADE,
+    "doctorInfoId" uuid REFERENCES "medecin",
+    "nom" varchar(31),
+    "prenom" varchar(31),
+    "dob" DATE,
+    "adresse" varchar(254),
+    "email" varchar(31),
+    "tel" varchar(31),
+    "nss" varchar(31)
 );
 
 CREATE TABLE "pharmacie" (
@@ -91,7 +92,9 @@ CREATE TABLE "commande" (
     "type" commandeType NOT NULL,
     "livreurId" uuid REFERENCES "livreur",
     "pharmacieId" uuid REFERENCES "pharmacie",
-    "etat" commandeEtat NOT NULL
+    "medecinId" uuid REFERENCES "medecin",
+    "etat" commandeEtat NOT NULL,
+    "ordonnanceURL" varchar(254)
 );
 
 CREATE TABLE "panierCommande" (
